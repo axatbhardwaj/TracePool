@@ -1,0 +1,17 @@
+{
+  "name": "bsc-copy-trading-bot-poc",
+  "version": "1.0.0",
+  "description": "Proof of Concept BSC copy trading bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "bun run index.js",
+    "dev": "bun run --watch index.js"
+  },
+  "dependencies": {
+    "ethers": "^6.7.0",
+    "dotenv": "^16.3.1"
+  },
+  "keywords": ["bsc", "copy-trading", "bot", "poc"],
+  "author": "",
+  "license": "MIT"
+}
