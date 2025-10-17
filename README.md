@@ -1,16 +1,18 @@
-# BSC Copy Trading Bot - POC
+# BSC Copy Trading Bot - POC (WIP)
 
-A simple proof-of-concept copy trading bot for Binance Smart Chain that monitors a target wallet and executes similar trades.
+A simple proof-of-concept copy trading bot for Binance Smart Chain that monitors blockchain activity and demonstrates potential copy trading mechanisms.
+
+**⚠️ WORK IN PROGRESS - For educational and testing purposes only**
 
 ## Features
 
 - 🔍 **Two Monitoring Modes**:
   - **Validator Mode**: Monitors specific wallet for transactions
   - **Mempool Mode**: Monitors all pending transactions in mempool
-- 🎯 Detects DEX swaps (PancakeSwap V2)
-- 📊 Detailed logging with timestamps for observation and testing
+- 🎯 Advanced transaction decoding (DEX swaps, ERC-20 transfers, approvals, contract calls)
+- 📊 Detailed logging with method signatures, parameters, and descriptions
 - ⚡ Built with Bun.js for optimal performance
-- ⏱️ Rate limiting to avoid RPC limits
+- 🔗 WebSocket event listeners for real-time blockchain monitoring
 
 ## Setup
 
@@ -58,17 +60,132 @@ A simple proof-of-concept copy trading bot for Binance Smart Chain that monitors
 3. **Logging**: Logs all mempool transactions and swaps for observation
 
 **Both Modes:**
-- ⏱️ Rate limiting to avoid RPC limits
-- 📊 Detailed logging with timestamps
+- 🔗 WebSocket event listeners for real-time blockchain monitoring
+- 📊 Detailed logging with timestamps and transaction analysis
 - 🎯 Copy trading disabled (observation only)
 
-## POC Limitations
+## Technical Implementation
 
-- Only supports PancakeSwap V2
-- No error recovery or retry logic
-- Basic transaction decoding (may miss some edge cases)
-- Simple P&L estimation for logging only
-- No gas optimization or balance checks
+### Event Listening Architecture
+
+The bot uses **WebSocket connections** to BSC RPC nodes for real-time blockchain monitoring:
+
+**Validator Mode:**
+```javascript
+// Listens for new block events
+provider.on('block', async (blockNumber) => {
+  // Fetches block with transactions
+  const block = await provider.getBlock(blockNumber, true);
+
+  // Filters transactions from target address
+  for (const txHash of block.transactions) {
+    const tx = await provider.getTransaction(txHash);
+    if (tx.from.toLowerCase() === targetAddress.toLowerCase()) {
+      // Decode and analyze transaction
+      const decoded = decoder.decodeTransaction(tx);
+      // Log detailed transaction info
+    }
+  }
+});
+```
+
+**Mempool Mode:**
+```javascript
+// Listens for pending transactions in mempool
+provider.on('pending', async (txHash) => {
+  // Fetches pending transaction
+  const tx = await provider.getTransaction(txHash);
+
+  if (tx) {
+    // Decode and analyze transaction
+    const decoded = decoder.decodeTransaction(tx);
+    // Log detailed transaction info
+  }
+});
+```
+
+### Transaction Decoding Engine
+
+The bot includes a sophisticated decoder that analyzes:
+
+1. **Method Signatures**: Identifies function calls by their 4-byte signatures
+2. **Parameter Extraction**: Decodes function parameters using ABI specifications
+3. **Transaction Classification**: Categorizes transactions by type (DEX swaps, transfers, approvals, etc.)
+4. **Contract Interaction Analysis**: Identifies which contracts are being called and why
+
+**Example Decoding:**
+```javascript
+// DEX Swap Detection
+if (tx.data.startsWith('0x7ff36ab5')) { // swapExactETHForTokens
+  const decoded = iface.decodeFunctionData('swapExactETHForTokens', tx.data);
+  return {
+    type: 'dex_swap',
+    method: 'swapExactETHForTokens',
+    fromToken: 'BNB',
+    toToken: decoded.path[1],
+    amount: tx.value,
+    path: decoded.path,
+    deadline: decoded.deadline
+  };
+}
+```
+
+### Potential Copy Trading Mechanism
+
+**How Copy Trading Could Work:**
+
+1. **Transaction Detection**: Monitor target wallet for DEX swap transactions
+2. **Trade Analysis**: Extract swap details (token pair, amount, direction)
+3. **Position Sizing**: Apply multiplier to original trade size
+4. **Slippage Management**: Use configured slippage tolerance for execution
+5. **Trade Execution**: Execute identical swap using bot's wallet
+6. **Risk Management**: Implement stop-loss, position limits, and gas optimization
+
+**Example Copy Trading Flow:**
+```javascript
+// 1. Detect validator swap
+const decodedSwap = decoder.decodeTransaction(validatorTx);
+
+// 2. Calculate copy trade parameters
+const copyAmount = originalAmount * tradeSizeMultiplier;
+const slippage = copyAmount * slippageTolerance;
+
+// 3. Execute copy trade
+const copyTx = await executeSwap({
+  fromToken: decodedSwap.fromToken,
+  toToken: decodedSwap.toToken,
+  amount: copyAmount,
+  maxSlippage: slippage
+});
+```
+
+### Real-Time Monitoring Benefits
+
+- **Mempool Visibility**: See transactions before they're confirmed
+- **Front-Running Detection**: Identify when traders are being front-run
+- **Market Analysis**: Understand trading patterns and behaviors
+- **Risk Assessment**: Evaluate strategy effectiveness in real-time
+
+## Current Status (WIP)
+
+**✅ Implemented:**
+- Real-time blockchain monitoring via WebSocket
+- Advanced transaction decoding (DEX swaps, ERC-20 transfers, approvals)
+- Dual monitoring modes (validator-specific and mempool-wide)
+- Detailed transaction analysis with method signatures and parameters
+
+**🚧 In Development:**
+- Copy trading execution engine
+- Risk management and position sizing
+- Gas optimization and balance monitoring
+- Multi-DEX support (PancakeSwap V2/V3, Uniswap clones)
+- Error recovery and retry mechanisms
+
+**⚠️ Known Limitations:**
+- Copy trading execution is currently disabled (observation only)
+- No production-ready error handling or recovery
+- Limited to BSC network and specific DEX protocols
+- No gas price optimization or MEV protection
 
 ## Example Output
 
@@ -127,6 +244,30 @@ A simple proof-of-concept copy trading bot for Binance Smart Chain that monitors
    ⏰ Timestamp: 2024-01-01T12:00:00.000Z
 ```
 
-## Safety Note
+## ⚠️ Important Safety Notice
 
-This is a POC for observation only. **Never use with real funds or production environments.** Always test thoroughly in a safe environment first.
+**🚨 WORK IN PROGRESS - EDUCATIONAL PURPOSES ONLY**
+
+This bot is a **proof-of-concept** and **work-in-progress** designed for:
+- Learning blockchain monitoring techniques
+- Understanding DEX transaction structures
+- Demonstrating copy trading concepts
+- Educational and research purposes
+
+**🚫 NOT FOR PRODUCTION USE:**
+- Copy trading execution is currently disabled
+- No risk management or safety mechanisms implemented
+- No error handling for production environments
+- **Never use with real funds or in production**
+
+**🔬 For Testing Only:**
+- Use testnet environments (BSC Testnet)
+- Monitor known test addresses only
+- All transactions are logged for analysis, not executed
+- Perfect for understanding blockchain mechanics
+
+**📚 Educational Value:**
+- Real-time transaction monitoring
+- Advanced ABI decoding techniques
+- WebSocket event handling
+- BSC mempool analysis
